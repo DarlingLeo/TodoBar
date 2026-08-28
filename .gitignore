@@ -1,0 +1,17 @@
+# 依赖与构建产物(不入库,随时可重新生成)
+node_modules/
+dist/
+npm-cache/
+
+# 日志与调试产物
+*.log
+build/*.log
+build/*.txt
+build/probe*
+build/shot*.png
+build/verify*
+build/data-snapshot*
+
+# 系统/编辑器
+.DS_Store
+Thumbs.db

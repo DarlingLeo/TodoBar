@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>今日待办</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 贴边折叠小图标(点击展开) -->
+  <div id="strip" class="strip">
+    <div class="strip-inner" title="今日待办,点击展开"></div>
+  </div>
+
+  <!-- 主界面 -->
+  <div id="app">
+    <header id="titlebar">
+      <div class="brand">
+        <span class="logo">☑</span>
+        <div class="titles">
+          <h1 id="titleHeading">今日待办</h1>
+          <button class="date-btn" id="dateBtn" title="点击选择日期,查看该日待办与已完成记录">
+            <span id="todayLabel"></span><span class="date-caret">▾</span>
+          </button>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnToday" class="icon-btn hidden" title="返回今天">◀</button>
+        <button id="btnLayout" class="icon-btn" title="切换上下/左右布局"></button>
+        <button id="btnAdd" class="icon-btn" title="新增待办">＋</button>
+        <button id="btnDock" class="icon-btn" title="折叠到屏幕边缘">▣</button>
+        <button id="btnSettings" class="icon-btn" title="设置">⚙</button>
+        <button id="btnHide" class="icon-btn" title="隐藏到托盘">✕</button>
+      </div>
+      <input type="date" id="datePicker" class="hidden-date-input" />
+    </header>
+
+    <!-- 新增待办表单 -->
+    <div id="addForm" class="add-form hidden">
+      <input id="inpTitle" type="text" placeholder="输入待办内容,回车添加" maxlength="200" autocomplete="off" />
+      <div class="add-row">
+        <span class="stars-label">紧急程度</span>
+        <div class="star-picker" id="starPicker" title="点击星星选择紧急程度(1-5 星,越多越紧急)">
+          <span class="star" data-v="1">★</span>
+          <span class="star" data-v="2">★</span>
+          <span class="star" data-v="3">★</span>
+          <span class="star" data-v="4">★</span>
+          <span class="star" data-v="5">★</span>
+          <span class="star-note" id="starNote">1 星</span>
+        </div>
+        <input id="inpDate" type="date" title="预计完成日期(可选)" />
+        <input id="inpTime" type="time" title="预计完成时间(可选)" />
+        <span class="spacer"></span>
+        <button id="btnAddOk" class="btn primary">添加</button>
+        <button id="btnAddCancel" class="btn">取消</button>
+      </div>
+    </div>
+
+    <main id="lists">
+      <!-- 待办 + 已完成:支持上下/左右两种布局 -->
+      <div id="dayDoneWrap" class="day-done-wrap">
+        <!-- 该日待办(活跃窗口,默认今天) -->
+        <section class="section col-day">
+          <div class="section-title"><span id="sectionTitleDayText">今日待办</span> <span class="count" id="dayCount"></span></div>
+          <div id="dayList" class="todo-list"></div>
+          <div id="dayEmpty" class="empty-tip hidden"></div>
+        </section>
+
+        <!-- 该日已完成 -->
+        <section class="section col-done">
+          <div class="section-title done-title"><span id="sectionTitleDoneText">已完成列表</span> <span class="count" id="doneCount"></span></div>
+          <div id="doneList" class="todo-list"></div>
+          <div id="doneEmpty" class="empty-tip hidden"></div>
+        </section>
+      </div>
+
+      <!-- 提醒列表(累计:跨日期的过期/临期,默认折叠在底部) -->
+      <section class="section remind-section">
+        <button class="remind-toggle" id="remindToggle" type="button" aria-expanded="false">
+          <span class="pulse-dot"></span>
+          <span>提醒列表(累计过期 / 临期)</span>
+          <span class="count" id="remindCount"></span>
+          <span class="caret" id="remindCaret">▾</span>
+        </button>
+        <div id="remindList" class="todo-list collapsed"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>设置</h2>
+        <button id="btnSettingsClose" class="icon-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <h3>外观</h3>
+        <div class="row">
+          <label>整体透明度</label>
+          <input type="range" id="setOpacity" min="30" max="100" step="1" />
+          <span id="opacityVal">92%</span>
+        </div>
+        <div class="row">
+          <label>窗口宽度</label>
+          <input type="number" id="setWidth" min="300" max="900" /> px
+        </div>
+        <div class="row">
+          <label>窗口高度</label>
+          <input type="number" id="setHeight" min="420" max="1400" /> px
+        </div>
+        <div class="row"><label class="checkline"><input type="checkbox" id="setAutoStart" /> 开机自动启动(用于每日定时邮件提醒)</label></div>
+
+        <h3>邮件推送</h3>
+        <div class="row"><label class="checkline"><input type="checkbox" id="setMailEnabled" /> 启用定时邮件推送(日报/周报)</label></div>
+        <div class="row"><label>SMTP 服务器</label><input type="text" id="setMailHost" placeholder="smtp.qq.com" /></div>
+        <div class="row"><label>端口</label><input type="number" id="setMailPort" value="465" /></div>
+        <div class="row"><label>邮箱账号</label><input type="text" id="setMailUser" placeholder="xxx@qq.com" /></div>
+        <div class="row"><label>授权码</label><input type="password" id="setMailAuth" placeholder="SMTP 授权码(非登录密码)" /></div>
+        <div class="row"><label>收件邮箱</label><input type="text" id="setMailTo" placeholder="收件人邮箱" /></div>
+        <div class="row">
+          <label>推送频率</label>
+          <select id="setMailFreq">
+            <option value="daily">每天</option>
+            <option value="1">每周一</option>
+            <option value="2">每周二</option>
+            <option value="3">每周三</option>
+            <option value="4">每周四</option>
+            <option value="5">每周五</option>
+            <option value="6">每周六</option>
+            <option value="0">每周日</option>
+          </select>
+          <input type="time" id="setMailTime" value="20:00" />
+        </div>
+        <div class="row mail-btns">
+          <button id="btnMailTest" class="btn">测试发送</button>
+          <button id="btnMailNow" class="btn">立即推送一次</button>
+          <span id="mailInfo" class="mail-info"></span>
+        </div>
+        <p class="hint">提示:QQ/163/Outlook 等邮箱需在网页邮箱设置中开启 SMTP 服务并生成「授权码」(不是登录密码)。定时推送需应用在运行。</p>
+
+        <h3>数据备份</h3>
+        <div class="row">
+          <button id="btnExport" class="btn">导出备份</button>
+          <button id="btnImport" class="btn">导入备份</button>
+          <button id="btnOpenDir" class="btn">打开数据目录</button>
+        </div>
+
+        <h3>使用说明</h3>
+        <ul class="help">
+          <li>「今日待办」显示<strong>活跃</strong>的待办:从添加当天起,到截止日期当天止,每天都出现;过了截止日还没完成的,转入底部「提醒列表」(可折叠,跨日期累计)。</li>
+          <li>点击顶栏日期 → 选历史日期 → 查看该日「活跃待办 / 该日已完成 + 提醒列表(累计)」。</li>
+          <li>点击待办上的<strong>截止时间</strong>(如"截止 今天 17:00"/"长期有效")→ 行内修改日期/时间,改完自动归位(改到明天就显示在明天待办里,不会进提醒)。</li>
+          <li>右上角 <strong>布局按钮</strong>:上下(待办在上/已完成在下)⇄ 左右(两列并排)切换,选择会记住。</li>
+          <li>勾选框打勾 → 标完成,完成时间 = 点击时刻。</li>
+          <li>新增时:日期时间都不选 = <strong>长期有效</strong>(每天显示直到完成);只填时间 = 当天该时刻截止;选了日期 = 该日截止。</li>
+          <li>拖窗口出屏幕边缘自动贴边成小图标,点击展开。</li>
+          <li>点击 🗑 删除待办,删除后不再保留记录。</li>
+          <li>点击 ✕ 隐藏到托盘;托盘图标右键可退出。</li>
+        </ul>
+      </div>
+      <div class="modal-foot">
+        <button id="btnSettingsSave" class="btn primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>

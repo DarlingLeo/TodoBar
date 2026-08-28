@@ -1,0 +1,21 @@
+{
+  "name": "todo-bar",
+  "productName": "TodoBar",
+  "version": "1.0.0",
+  "description": "QQ 式贴边折叠桌面待办清单",
+  "main": "main.js",
+  "author": "WorkBuddy",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node scripts/make-icon.js",
+    "pack": "electron-packager . TodoBar --platform=win32 --arch=x64 --out=dist --overwrite --icon=build/icon.ico --app-version=1.0.0 --asar"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.16"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-packager": "^17.1.2"
+  }
+}
