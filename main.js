@@ -312,6 +312,25 @@ function createWindow() {
     if (!app.isQuiting) { e.preventDefault(); win.hide(); } // 关闭 = 隐藏到托盘
   });
 
+  // 修复:点击任务栏图标"最小化→还原"后,透明窗口偶发整窗只显示应用图标(不重绘)。
+  // 根因:transparent 窗口 + 禁用 GPU 时,系统还原动画结束后渲染层未触发重绘;
+  // 手动拖动窗口会强制重排所以又能恢复。这里在还原/显示时主动强制重绘一次。
+  const forceRepaint = () => {
+    setImmediate(() => {
+      if (!win || win.isDestroyed()) return;
+      try {
+        const b = win.getBounds();
+        programmaticMove = true; // 尺寸微调属于程序行为,不要触发贴边检测
+        win.setBounds({ ...b, width: b.width + 1 }); // 尺寸变化强制重排+重绘
+        win.setBounds(b);
+        programmaticMove = false;
+        win.webContents.invalidate(); // 双保险:整窗标记为脏区强制重画
+      } catch (_) { programmaticMove = false; }
+    });
+  };
+  win.on('restore', forceRepaint);
+  win.on('show', forceRepaint);
+
   // 拖动/缩放结束后检测贴边
   let moveTimer = null;
   const arm = () => {
