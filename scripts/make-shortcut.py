@@ -45,10 +45,14 @@ QueryInterface = WINFUNCTYPE(ctypes.c_long, c_void_p, POINTER(GUID), POINTER(c_v
 # Release
 Release = WINFUNCTYPE(ctypes.c_ulong, c_void_p)(vt[2])
 
-exe = r'C:\Users\HP\WorkBuddy\2026-08-04-17-09-52\todo-desktop\node_modules\electron\dist\electron.exe'
-app = r'C:\Users\HP\WorkBuddy\2026-08-04-17-09-52\todo-desktop'
+import os
+# 项目根目录 = 本脚本所在目录的上一级(scripts/ -> 项目根),使脚本可移植
+APP = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+exe = os.path.join(APP, 'node_modules', 'electron', 'dist', 'electron.exe')
+app = APP
 args = '--no-sandbox --disable-gpu "%s"' % app
-icon = r'C:\Users\HP\WorkBuddy\2026-08-04-17-09-52\todo-desktop\build\icon.ico'
+icon = os.path.join(APP, 'build', 'icon.ico')
 
 SetPath(psl, exe)
 SetArguments(psl, args)
