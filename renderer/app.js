@@ -64,7 +64,7 @@
     const n = Math.min(5, Math.max(1, parseInt(u, 10) || 1));
     let s = '';
     for (let i = 1; i <= 5; i++) s += `<span class="star-i ${i <= n ? 'on' : 'off'}">${i <= n ? '★' : '☆'}</span>`;
-    return `<span class="urgency" title="紧急程度 ${n}/5">${s}</span>`;
+    return `<span class="urgency clickable" data-edit-urgency="1" title="紧急程度 ${n}/5,点击修改">${s}</span>`;
   }
 
   let remindExpanded = false; // 提醒列表折叠状态
@@ -86,7 +86,7 @@
     return `<div class="todo-item ${cls}" data-id="${t.id}">
       <label class="cb"><input type="checkbox" class="cb-input" ${completed ? 'checked' : ''} /><span class="box"></span></label>
       <div class="body">
-        <div class="title">${esc(t.title)}</div>
+        <div class="title clickable" data-edit-title="1" title="点击修改标题">${esc(t.title)}</div>
         <div class="meta">${badges.join('')}${starsHTML(t.urgency)}${statusHtml}</div>
       </div>
       <button class="del" title="删除待办">🗑</button>
@@ -179,6 +179,65 @@
       </span>`;
       const di = meta.querySelector('.due-date');
       if (di) di.focus();
+      return;
+    }
+    // 点击标题 → 行内输入框编辑(回车/失焦=保存,Esc=取消)
+    if (e.target.closest('.title[data-edit-title]')) {
+      if (item.querySelector('.title-input')) return; // 已在编辑中
+      const t = todos.find((x) => x.id === id);
+      if (!t) return;
+      const titleEl = item.querySelector('.title');
+      titleEl.innerHTML = `<div class="title-edit-box"><input class="title-input" value="${esc(t.title)}" maxlength="200" autocomplete="off" /></div>`;
+      const inp = titleEl.querySelector('.title-input');
+      inp.focus();
+      inp.select();
+      inp.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); inp.value = t.title; inp.blur(); }
+      });
+      inp.addEventListener('blur', () => {
+        const val = inp.value.trim();
+        if (val && val !== t.title) {
+          api.updateTitle(id, val).then((list) => { todos = normalizeTodos(list); render(); toast('已更新标题'); });
+        } else {
+          render(); // 空或未变 → 恢复原样
+        }
+      });
+      return;
+    }
+    // 星级:预览(点星即时高亮)
+    if (e.target.closest('.ue-star')) {
+      const s = e.target.closest('.ue-star');
+      const v = Number(s.dataset.v);
+      const urgencyEl = item.querySelector('.urgency');
+      urgencyEl.dataset.cur = v;
+      urgencyEl.querySelectorAll('.ue-star').forEach((el) => {
+        const on = Number(el.dataset.v) <= v;
+        el.classList.toggle('on', on);
+        el.textContent = on ? '★' : '☆';
+      });
+      return;
+    }
+    // 星级:保存 / 取消
+    if (e.target.closest('.ue-ok')) {
+      const urgencyEl = item.querySelector('.urgency');
+      const v = Number(urgencyEl.dataset.cur) || 1;
+      api.updateUrgency(id, v).then((list) => { todos = normalizeTodos(list); render(); toast('已更新紧急程度为 ' + v + ' 星'); });
+      return;
+    }
+    if (e.target.closest('.ue-cancel')) { render(); return; }
+    // 点击星级 → 打开星级选择器
+    if (e.target.closest('.urgency[data-edit-urgency]')) {
+      if (item.querySelector('.ue-ok')) return; // 已在编辑中
+      const t = todos.find((x) => x.id === id);
+      if (!t) return;
+      const n = Math.min(5, Math.max(1, parseInt(t.urgency, 10) || 1));
+      const urgencyEl = item.querySelector('.urgency');
+      let stars = '';
+      for (let i = 1; i <= 5; i++) stars += `<span class="ue-star${i <= n ? ' on' : ''}" data-v="${i}">${i <= n ? '★' : '☆'}</span>`;
+      urgencyEl.dataset.cur = n;
+      urgencyEl.innerHTML = `<span class="urgency-edit-box">${stars}<button class="ue-ok" title="保存">✓</button><button class="ue-cancel" title="取消">✕</button></span>`;
+      return;
     }
   });
   document.addEventListener('change', (e) => {

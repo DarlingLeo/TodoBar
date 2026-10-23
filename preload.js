@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('api', {
   add: (t) => ipcRenderer.invoke('todo:add', t),
   toggle: (id) => ipcRenderer.invoke('todo:toggle', id),
   updateDue: (id, dueDate, dueTime) => ipcRenderer.invoke('todo:update-due', id, dueDate, dueTime),
+  updateTitle: (id, title) => ipcRenderer.invoke('todo:update-title', id, title),
+  updateUrgency: (id, urgency) => ipcRenderer.invoke('todo:update-urgency', id, urgency),
   remove: (id) => ipcRenderer.invoke('todo:remove', id),
   // 设置 / 数据
   getSettings: () => ipcRenderer.invoke('settings:get'),

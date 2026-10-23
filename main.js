@@ -530,6 +530,27 @@ ipcMain.handle('todo:update-due', (_e, id, dueDate, dueTime) => {
   }
   return db.todos;
 });
+ipcMain.handle('todo:update-title', (_e, id, title) => {
+  const t = db.todos.find((x) => x.id === id);
+  if (t) {
+    const newTitle = String(title || '').trim().slice(0, 200);
+    if (newTitle) {
+      t.title = newTitle;
+      logChange({ op: 'title', id, title: t.title });
+      saveData();
+    }
+  }
+  return db.todos;
+});
+ipcMain.handle('todo:update-urgency', (_e, id, urgency) => {
+  const t = db.todos.find((x) => x.id === id);
+  if (t) {
+    t.urgency = Math.min(5, Math.max(1, parseInt(urgency, 10) || 1));
+    logChange({ op: 'urgency', id, title: t.title, urgency: t.urgency });
+    saveData();
+  }
+  return db.todos;
+});
 ipcMain.handle('todo:remove', (_e, id) => {
   const t = db.todos.find((x) => x.id === id);
   logChange({ op: 'remove', id, title: t && t.title });
