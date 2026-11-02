@@ -11,13 +11,31 @@
   --radius: 14px;
   --shadow: 0 10px 34px rgba(15, 23, 42, 0.18);
 }
+/* 经典谷歌配色:浅色系背景(红黄蓝绿低饱和) + 标准四色强调。蓝 #4285f4 / 红 #ea4335 / 黄 #fbbc05 / 绿 #34a853 */
+body[data-theme="google"] {
+  --primary: #4285f4;
+  --primary-dark: #3367d6;
+  --danger: #ea4335;
+  --warn: #f9ab00;
+  --ok: #34a853;
+}
+/* logo:蓝→绿→黄→红 四色浅色平滑渐变(Material 200 色阶,无硬边界色标均分过渡),对勾深灰 */
+body[data-theme="google"] .logo {
+  background: linear-gradient(90deg, #90caf9, #a5d6a7, #fff59d, #ef9a9a);
+  color: #5f6368;
+}
+/* 条目背景浅色系(无边框):待办浅蓝 / 已完成浅绿 / 过期淡粉 / 临期浅橙 */
+body[data-theme="google"] .todo-item { background: #e8f4ff; border: none; }
+body[data-theme="google"] .todo-item.done { background: #e6f4ea; border: none; }
+body[data-theme="google"] .todo-item.overdue-item { background: #fce8e6; border: none; }
+body[data-theme="google"] .todo-item.soon-item { background: #fff3e0; border: none; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   height: 100%;
   background: transparent;
   overflow: hidden;
-  font-family: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  font-family: "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
   color: var(--text);
   user-select: none;
   font-size: 14px;
@@ -31,11 +49,10 @@ button { font-family: inherit; }
   inset: 0;
   background: var(--panel-bg);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  backdrop-filter: blur(14px);
+  /* 注意:不要加 backdrop-filter。透明窗口 + 禁用 GPU 时,毛玻璃会溢出到圆角外形成白色方角。 */
 }
 
 /* ---------- 标题栏(拖动区) ---------- */
@@ -109,9 +126,11 @@ button { font-family: inherit; }
 .star-note { font-size: 11px; color: var(--muted); margin-left: 5px; min-width: 32px; }
 
 /* ---------- 列表区 ---------- */
-#lists { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 10px 16px; scrollbar-width: thin; }
+#lists { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 6px 10px 6px; scrollbar-width: thin; }
 #lists::-webkit-scrollbar { width: 6px; }
 #lists::-webkit-scrollbar-thumb { background: rgba(100,116,139,.3); border-radius: 3px; }
+/* 底部圆角安全区:让滚动条不进入窗口底部圆角区域 */
+.bottom-safe { height: var(--radius); flex-shrink: 0; }
 .day-done-wrap { display: block; }
 /* 左右布局:待办 | 已完成 两列并排,各列独立滚动,按更长一列撑满高度 */
 body.layout-h #lists { overflow: hidden; display: flex; flex-direction: column; }

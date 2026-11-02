@@ -6,7 +6,7 @@
 |---|---|
 | 应用名 | 今日待办 TodoBar |
 | 技术栈 | Electron(主进程 main.js + 渲染进程 renderer/) |
-| 项目路径 | `todo-desktop/` |
+| 项目路径 | `D:\todo_git` |
 | 数据文件 | `%APPDATA%\TodoBar\todos.json` |
 | 备份文件 | `%APPDATA%\TodoBar\todos.json.bak`(每次启动自动备份) |
 | 错误日志 | `%APPDATA%\TodoBar\error.log` |
@@ -17,10 +17,10 @@
 
 ```bash
 # 方式一:双击启动器
-todo-desktop\启动TodoBar.bat
+桌面 TodoBar.lnk(或开机自启)
 
 # 方式二:命令行
-cd todo-desktop
+cd /d D:\todo_git
 env -u ELECTRON_RUN_AS_NODE ./node_modules/electron/dist/electron.exe --no-sandbox --disable-gpu .
 ```
 
@@ -129,6 +129,65 @@ env -u ELECTRON_RUN_AS_NODE ./node_modules/electron/dist/electron.exe --no-sandb
 ### 2026-08-12 · 文档
 
 - ✨ 整理本 README(功能介绍 + 历史调整记录)。
+
+### 2026-08-13 · Windows exe 打包
+
+- ✨ 用 electron-packager 打包 Windows exe(产物 `dist/TodoBar-win32-x64`,含 `TodoBar.exe` + 110MB zip)。
+- 🔧 关键坑:Electron 默认从 GitHub 下载超时 → 需设 `ELECTRON_MIRROR` 国内镜像;`.bin` 快捷方式缺失改用 `node` 直调;用 ignore 正则排除启动器/缓存/日志等杂项。
+
+### 2026-08-17 · 单实例 / 崩溃自启加固
+
+- 🐛 排查「08-14 数据丢失」:确认 08-14 数据从未写入本机文件,实为残留实例占用单实例锁、新启动拉起旧窗口所致。
+- ✨ 单实例提示:second-instance 时向已有窗口发 toast「已有 TodoBar 实例在运行」。
+- ✨ 渲染进程崩溃自动重启:render-process-gone / unresponsive 时 relaunch,避免坏窗口占锁挡住后续启动。
+- ✨ 开机自启动:`autoStart` 设置项 + 注册表登录项 `com.todobar.app`。
+- 🔧 桌面启动器改用 `.bat`(COM 建 .lnk 被安全策略拦截)。
+
+### 2026-08-18 · 重大修复:同步保存 + 操作日志
+
+- 🐛 **修复数据丢失根因**:所有数据变更原走 `scheduleSave()`(300ms 防抖),应用在防抖期内关闭/崩溃即丢失;改为 `saveData()` 同步写盘 + `before-quit` 兜底。**教训:离散数据变更必须同步写盘,绝不依赖防抖定时器。**
+- ✨ 操作日志 `changes.log`(write-ahead journal):add/complete/uncomplete/due/remove/import 写盘前先落一条,作为数据找回兜底。
+- 🐛 修复保存失败静默:强化 saveData(重试 3 次 + 降级直接覆盖写 + 失败弹 notice 提示)。
+
+### 2026-08-20 · 文件锁真凶定位
+
+- ⚠️ 08-19→08-20 操作被文件锁阻塞未落盘,用 `todos.json.tmp` 残留快照救回数据(23→25 条)。
+- 🐛 排查文件锁真凶:先排除「腾讯电脑管家」误判,确认真凶为通达OA `ispirit.exe`(D:\tongda)+ TIM/微信后台组件间歇性锁定 AppData 下的 JSON。
+- ✨ saveData 失败 → `scheduleRetrySave` 每 30s 自动补存直到成功;changes.log 失败缓存 pendingLogs 补写。
+- ✨ 新增 `scripts/find-locker.py`(RestartManager 查锁定进程),saveData 失败时自动记录凶手到日志。
+
+### 2026-08-21 · 折叠展开尺寸修复
+
+- 🐛 展开尺寸原用 `state.expandedBounds`(上次停靠前尺寸),中途手动缩小后再停靠会展开成小窗;改为 `max(设置值, expandedBounds)`,设置值为尺寸下限。
+
+### 2026-08-28 · Git 版本控制 + C盘→D盘迁移
+
+- ✨ 初始化 git 仓库并绑定 GitHub(DarlingLeo/TodoBar),首次提交 `833644d`(15 文件)。
+- 🔧 C盘→D盘迁移:node_modules 复制到 D:\todo_git、桌面 `TodoBar.lnk` 改相对路径、自启重注册指向 D 盘;删除 C 盘 todo-desktop(645MB)。
+
+### 2026-10-19 · 任务栏还原大图标修复
+
+- 🐛 透明无边框窗口 + 禁用 GPU,从任务栏「最小化→还原」后偶发不重绘、整窗显示应用大图标;监听 `restore`/`show` 事件,还原时强制重排重绘(宽 ±1px + `webContents.invalidate()`)。提交 `31e4d85`。
+
+### 2026-10-20 · 脚本重构
+
+- 🔧 `make-shortcut.py` 硬编码 C 盘路径改为相对路径(可移植)。提交 `df4a03b`。
+
+### 2026-10-23 · 标题与星级点击编辑
+
+- ✨ 待办标题支持点击行内编辑(点击→输入框,回车/失焦=保存,Esc=取消);紧急度星级支持点击弹出 5 星选择器(点星预览,✓/✕)。均走同步写盘。提交 `1aeef50`。
+
+### 2026-10-31 · 重装 Git
+
+- 🔧 重装 Git 到 `D:\Git`(便携版 2.56.0.windows.4),用户级 PATH 追加 `D:\Git\cmd`;下载走清华镜像(GitHub CDN 被墙);`.gitconfig` 保留完好无需重设。
+
+### 2026-11-02 · 界面主题(谷歌浅色配色) + 圆角修复 + 字体
+
+- ✨ 右上角新增配色切换按钮,经典蓝白 ⇄ 经典谷歌,选择持久化(`settings.theme`)。
+- 🎨 谷歌配色:整体背景嫩黄 `#FFFFED`、待办浅蓝 `#E8F4FF`、已完成浅绿 `#E6F4EA`、过期淡粉 `#FCE8E6`、临期浅橙 `#FFF3E0`(四种条目均去边框,纯色块风格);logo 蓝→绿→黄→红四色平滑渐变(Material 200 色阶)+ 深灰对勾 `#5F6368`;按钮/勾选/星级/状态文字等强调色保持标准四色。
+- 🎨 全局字体改为思源黑体(Source Han Sans SC,开源 SIL OFL 1.1,可免费商用),Regular + Bold 装到本机用户字体目录。
+- 🐛 修复四角方角:① 移除 `#app` 的 `backdrop-filter`(毛玻璃溢出圆角成白方角)与 `box-shadow`(透明窗口投影成方角阴影);② `#lists` 底部新增 14px 安全区(`.bottom-safe`),滚动条滑块不再贴住右下角,圆角干净收边。
+- 🐛 修复谷歌主题下透明度滑块失效(`applyOpacity` 按主题区分背景色 RGB)。
 
 ---
 

@@ -46,6 +46,7 @@ const DEFAULT_SETTINGS = {
   width: 380,
   height: 620,
   layout: 'v', // v=上下(待办在上/已完成在下), h=左右(并排)
+  theme: 'blue', // blue=经典蓝白, google=经典谷歌配色
   autoStart: false, // 开机自动启动
   email: {
     enabled: false,

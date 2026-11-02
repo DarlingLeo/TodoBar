@@ -11,6 +11,7 @@
   let docked = false;
   let viewDate = null; // 非空 = 正在查看历史日期的待办/已完成
   let layoutMode = 'v'; // v=上下(待办在上/已完成在下), h=左右(并排)
+  let theme = 'blue'; // blue=经典蓝白, google=经典谷歌配色
 
   const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
   const TWO_HOURS = 2 * 3600 * 1000;
@@ -292,6 +293,19 @@
     api.saveSettings({ ...settings, layout: layoutMode });
     toast(layoutMode === 'h' ? '已切换为左右布局' : '已切换为上下布局');
   };
+
+  // ---------- 配色风格切换(经典蓝白 ⇄ 经典谷歌) ----------
+  function applyTheme() {
+    document.body.dataset.theme = theme;
+    $('btnTheme').title = theme === 'google' ? '切换配色风格(当前:谷歌,点击切回蓝白)' : '切换配色风格(当前:蓝白,点击切为谷歌)';
+    applyOpacity((settings && settings.opacity) || 0.92); // 背景色跟随主题重新应用
+  }
+  $('btnTheme').onclick = () => {
+    theme = theme === 'blue' ? 'google' : 'blue';
+    applyTheme();
+    api.saveSettings({ ...settings, theme });
+    toast(theme === 'google' ? '已切换为经典谷歌配色' : '已切换为经典蓝白配色');
+  };
   $('remindToggle').onclick = () => {
     remindExpanded = !remindExpanded;
     $('remindToggle').setAttribute('aria-expanded', remindExpanded ? 'true' : 'false');
@@ -385,7 +399,9 @@
   $('settingsModal').addEventListener('click', (e) => { if (e.target === $('settingsModal')) closeSettings(); });
 
   function applyOpacity(v) {
-    document.documentElement.style.setProperty('--panel-bg', `rgba(247, 249, 252, ${v})`);
+    // 背景色 RGB 跟随主题:蓝白 #F7F9FC / 谷歌嫩黄 #FFFFED
+    const rgb = theme === 'google' ? '255, 255, 237' : '247, 249, 252';
+    document.documentElement.style.setProperty('--panel-bg', `rgba(${rgb}, ${v})`);
   }
   $('setOpacity').oninput = function () {
     $('opacityVal').textContent = this.value + '%';
@@ -495,6 +511,8 @@
     applyOpacity(settings.opacity || 0.92);
     layoutMode = settings.layout === 'h' ? 'h' : 'v';
     applyLayout();
+    theme = settings.theme === 'google' ? 'google' : 'blue';
+    applyTheme();
     $('datePicker').value = fmtDate(new Date()); // 日历默认定位到今天
     render();
     syncStars();
