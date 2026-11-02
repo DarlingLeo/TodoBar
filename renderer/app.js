@@ -84,7 +84,7 @@
     const cls = completed ? 'done'
       : st.group === 'overdue' ? 'overdue-item'
       : st.group === 'soon' ? 'soon-item' : '';
-    return `<div class="todo-item ${cls}" data-id="${t.id}">
+    return `<div class="todo-item ${cls}" data-id="${esc(t.id)}">
       <label class="cb"><input type="checkbox" class="cb-input" ${completed ? 'checked' : ''} /><span class="box"></span></label>
       <div class="body">
         <div class="title clickable" data-edit-title="1" title="点击修改标题">${esc(t.title)}</div>
@@ -173,8 +173,8 @@
       if (!t) return;
       const meta = item.querySelector('.meta');
       meta.innerHTML = `<span class="due-edit-box">
-        <input type="date" class="due-date" value="${t.dueDate || ''}" />
-        <input type="time" class="due-time" value="${t.dueTime || ''}" />
+        <input type="date" class="due-date" value="${esc(t.dueDate || '')}" />
+        <input type="time" class="due-time" value="${esc(t.dueTime || '')}" />
         <button class="due-ok" title="保存">✓</button>
         <button class="due-cancel" title="取消">✕</button>
       </span>`;

@@ -188,6 +188,8 @@ env -u ELECTRON_RUN_AS_NODE ./node_modules/electron/dist/electron.exe --no-sandb
 - 🎨 全局字体改为思源黑体(Source Han Sans SC,开源 SIL OFL 1.1,可免费商用),Regular + Bold 装到本机用户字体目录。
 - 🐛 修复四角方角:① 移除 `#app` 的 `backdrop-filter`(毛玻璃溢出圆角成白方角)与 `box-shadow`(透明窗口投影成方角阴影);② `#lists` 底部新增 14px 安全区(`.bottom-safe`),滚动条滑块不再贴住右下角,圆角干净收边。
 - 🐛 修复谷歌主题下透明度滑块失效(`applyOpacity` 按主题区分背景色 RGB)。
+- 🔒 安全加固:① 新增 `sanitizeTodo` 白名单校验(加载/导入时净化 `id`/`title`/`urgency`/`dueDate`/`dueTime`/时间戳),修复导入恶意备份 JSON 触发的存储型 XSS;② `settings:save` 新增 `sanitizeSettings` 字段白名单(顺带修复保存设置丢失 `theme` 字段的 bug);③ `index.html` 新增 CSP(`script-src 'self'`、`connect-src 'none'` 等);④ 渲染层补 `esc()` 转义。
+- 🐛 修复右上角日期/星期跨行:换思源黑体后中文字符变宽导致「星期×」折行,`.date-btn` 加 `white-space: nowrap` + 字号 `11px→10px`。
 
 ---
 

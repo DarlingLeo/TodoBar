@@ -76,8 +76,9 @@ button { font-family: inherit; }
 .date-btn {
   -webkit-app-region: no-drag;
   display: inline-flex; align-items: center; gap: 4px;
+  white-space: nowrap;
   background: rgba(59, 130, 246, 0.08); border: 1px solid transparent;
-  color: var(--primary-dark); font-size: 11px; padding: 2px 9px;
+  color: var(--primary-dark); font-size: 10px; padding: 2px 9px;
   border-radius: 999px; cursor: pointer; margin-top: 2px;
   transition: all .15s;
 }

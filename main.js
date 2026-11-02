@@ -70,13 +70,60 @@ function normalizeTodos(list) {
     urgency: Math.min(5, Math.max(1, parseInt(t.urgency, 10) || (t.urgent ? 4 : 1))),
   }));
 }
+// 数据净化(安全):逐字段白名单 + 类型/格式校验,防止恶意备份或外部篡改注入非法值
+// (如 id 注入 XSS、非法日期导致渲染异常)。缺 id 或非法 id 一律重新生成安全 id。
+function sanitizeTodo(t) {
+  const o = (t && typeof t === 'object') ? t : {};
+  const ts = (v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
+  const str = (v, max) => String(v == null ? '' : v).slice(0, max);
+  return {
+    id: (typeof o.id === 'string' && /^[a-z0-9]+$/i.test(o.id)) ? o.id : genId(),
+    title: str(o.title, 200),
+    urgency: Math.min(5, Math.max(1, parseInt(o.urgency, 10) || 1)),
+    important: !!o.important,
+    dueDate: (typeof o.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.dueDate)) ? o.dueDate : null,
+    dueTime: (typeof o.dueTime === 'string' && /^\d{2}:\d{2}$/.test(o.dueTime)) ? o.dueTime : null,
+    createdAt: ts(o.createdAt) || Date.now(),
+    completedAt: ts(o.completedAt),
+  };
+}
+// 设置白名单校验:只接收已知字段并做类型/范围约束,防止注入任意字段。
+// base 可选:不传时以当前 db.settings 作为兜底(保存时保留未传字段的现值)。
+function sanitizeSettings(s, base) {
+  const o = (s && typeof s === 'object') ? s : {};
+  const cur = (base && typeof base === 'object') ? base : db.settings;
+  const e = (o.email && typeof o.email === 'object') ? o.email : {};
+  const ce = (cur.email && typeof cur.email === 'object') ? cur.email : {};
+  const num = (v, def) => { const n = Number(v); return Number.isFinite(n) ? n : def; };
+  return {
+    opacity: clamp(num(o.opacity, cur.opacity), 0.3, 1),
+    width: clamp(Math.round(num(o.width, cur.width)), 300, 900),
+    height: clamp(Math.round(num(o.height, cur.height)), 420, 1400),
+    layout: (o.layout === 'v' || o.layout === 'h') ? o.layout : (cur.layout === 'h' ? 'h' : 'v'),
+    theme: (o.theme === 'blue' || o.theme === 'google') ? o.theme : (cur.theme === 'google' ? 'google' : 'blue'),
+    autoStart: !!o.autoStart,
+    email: {
+      enabled: !!e.enabled,
+      host: String(e.host || ''),
+      port: clamp(Math.round(num(e.port, ce.port || 465)), 1, 65535),
+      secure: num(e.port, ce.port || 465) === 465,
+      user: String(e.user || ''),
+      authCode: String(e.authCode || ''),
+      to: String(e.to || ''),
+      frequency: String(e.frequency || 'daily'),
+      pushTime: String(e.pushTime || '20:00'),
+      lastPushKey: String(e.lastPushKey || ce.lastPushKey || ''),
+      lastPushAt: String(e.lastPushAt || ce.lastPushAt || ''),
+    },
+  };
+}
 function loadData() {
   try {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     const d = JSON.parse(raw);
     return {
-      settings: Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), d.settings || {}),
-      todos: normalizeTodos(d.todos),
+      settings: sanitizeSettings(d.settings, DEFAULT_SETTINGS),
+      todos: (Array.isArray(d.todos) ? d.todos : []).map(sanitizeTodo),
     };
   } catch (e) {
     return { settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), todos: [] };
@@ -562,13 +609,13 @@ ipcMain.handle('todo:remove', (_e, id) => {
 
 ipcMain.handle('settings:get', () => db.settings);
 ipcMain.handle('settings:save', (_e, s) => {
-  db.settings = s;
+  db.settings = sanitizeSettings(s);
   saveData();
-  applyAutoStart(!!s.autoStart); // 开机自启立即生效
+  applyAutoStart(db.settings.autoStart); // 开机自启立即生效
   if (win && !state.docked) {
     const wa = displayOf(win.getBounds()).workArea;
-    const width = clamp(Math.round(s.width || 380), 300, wa.width - 20);
-    const height = clamp(Math.round(s.height || 620), 420, wa.height - 20);
+    const width = clamp(Math.round(db.settings.width), 300, wa.width - 20);
+    const height = clamp(Math.round(db.settings.height), 420, wa.height - 20);
     programmaticMove = true;
     win.setBounds({ width, height });
     programmaticMove = false;
@@ -600,7 +647,7 @@ ipcMain.handle('data:import', async () => {
   try {
     const d = JSON.parse(fs.readFileSync(filePaths[0], 'utf8'));
     if (!Array.isArray(d.todos)) throw new Error('备份文件格式不正确');
-    db = { settings: Object.assign({}, JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), d.settings || {}), todos: normalizeTodos(d.todos) };
+    db = { settings: sanitizeSettings(d.settings, DEFAULT_SETTINGS), todos: d.todos.map(sanitizeTodo) };
     logChange({ op: 'import', count: db.todos.length });
     saveData();
     return { ok: true, todos: db.todos, settings: db.settings };
